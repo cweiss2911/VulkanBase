@@ -70,6 +70,8 @@ namespace VulkanBase.ShaderParsing
 
         public DescriptorSet CreateDescriptorSet(int setIndex, int binding, BufferWithMemory buffer)
         {
+            ValidateDiscriporPool();
+
             DescriptorSetLayout descriptorSetLayout = DescriptorSetLayouts[setIndex];
             ShaderUniformSet shaderUniformSet = ShaderUniformSets[setIndex];
 
@@ -110,6 +112,8 @@ namespace VulkanBase.ShaderParsing
 
         public DescriptorSet CreateDescriptorSet(int setIndex, int binding, ImageView imageView, ImageLayout imageLayout = ImageLayout.ColorAttachmentOptimal)
         {
+            ValidateDiscriporPool();
+
             DescriptorSetLayout descriptorSetLayout = DescriptorSetLayouts[setIndex];
             ShaderUniformSet shaderUniformSet = ShaderUniformSets[setIndex];
 
@@ -152,8 +156,18 @@ namespace VulkanBase.ShaderParsing
             return descriptorSet;
         }
 
+        private static void ValidateDiscriporPool()
+        {
+            if (VContext.Instance.descriptorPool == null)
+            {
+                throw new Exception("DescriptorPool not initialized");
+            }
+        }
+
         public DescriptorSet CreateDescriptorSet(int setIndex, int binding, BufferviewWithMemory bufferviewWithMemory)
         {
+            ValidateDiscriporPool();
+
             DescriptorSetLayout descriptorSetLayout = DescriptorSetLayouts[setIndex];
             ShaderUniformSet shaderUniformSet = ShaderUniformSets[setIndex];
 

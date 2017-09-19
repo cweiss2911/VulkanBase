@@ -6,7 +6,7 @@ using System.Text;
 using System.Threading.Tasks;
 using Vulkan;
 
-namespace VulkanBase
+namespace VulkanBase.TextureLoading
 {
     public unsafe static class TextureLoader
     {
@@ -20,17 +20,18 @@ namespace VulkanBase
                     Level = CommandBufferLevel.Primary
                 }
             ).First());
+        
 
 
-        public static ImageView CreateImageView(
-            uint width,
-            uint height,
-            ImageUsageFlags imageUsageFlags,
-            ImageLayout imageLayout,
-            AccessFlags accessMask)
-
+        public static ImageWithMemory CreateImageWithMemory(
+        uint width,
+        uint height,
+        ImageUsageFlags imageUsageFlags,
+        ImageLayout imageLayout,
+        AccessFlags accessMask)
         {
-            Vulkan.Image image = VContext.Instance.device.CreateImage
+            ImageWithMemory imageWithMemory = new ImageWithMemory();
+            imageWithMemory.Image = VContext.Instance.device.CreateImage
             (
                 new ImageCreateInfo()
                 {
@@ -52,10 +53,10 @@ namespace VulkanBase
                 }
             );
 
-            MemoryRequirements textureMemoryRequirements = VContext.Instance.device.GetImageMemoryRequirements(image);
+            MemoryRequirements textureMemoryRequirements = VContext.Instance.device.GetImageMemoryRequirements(imageWithMemory.Image);
             uint memoryTypeIndex = Util.GetMemoryTypeIndex(textureMemoryRequirements.MemoryTypeBits, MemoryPropertyFlags.DeviceLocal);
 
-            DeviceMemory textureImageMemory = VContext.Instance.device.AllocateMemory
+            imageWithMemory.Memory = VContext.Instance.device.AllocateMemory
             (
                 new MemoryAllocateInfo()
                 {
@@ -63,7 +64,7 @@ namespace VulkanBase
                     MemoryTypeIndex = memoryTypeIndex
                 }
             );
-            VContext.Instance.device.BindImageMemory(image, textureImageMemory, 0);
+            VContext.Instance.device.BindImageMemory(imageWithMemory.Image, imageWithMemory.Memory, 0);
 
             if (imageLayout != ImageLayout.Undefined)
             {
@@ -78,12 +79,11 @@ namespace VulkanBase
                     LayerCount = 1,
                 };
 
-
                 ImageMemoryBarrier undefinedToTranserDstBarrier = new ImageMemoryBarrier()
                 {
                     OldLayout = ImageLayout.Undefined,
                     NewLayout = imageLayout,
-                    Image = image,
+                    Image = imageWithMemory.Image,
                     SubresourceRange = subresourceRange,
                     SrcAccessMask = 0,
                     DstAccessMask = accessMask
@@ -127,18 +127,21 @@ namespace VulkanBase
                 VContext.Instance.device.DestroyFence(fence);
             }
 
-            ImageView textureImageView = VContext.Instance.CreateColorImageView(image);
+            imageWithMemory.ImageView = VContext.Instance.CreateColorImageView(imageWithMemory.Image);
 
-            return textureImageView;
+            return imageWithMemory;
         }
+        
 
 
-        public static ImageView CreateImageView(
-            Bitmap texture,
+        public static ImageWithMemory CreateImageWithMemory(
+            Bitmap texture,            
             bool forceLinear = false,
             ImageUsageFlags imageUsageFlags = ImageUsageFlags.Sampled,
             ImageLayout imageLayout = ImageLayout.ShaderReadOnlyOptimal)
         {
+            ImageWithMemory imageWithMemory = new ImageWithMemory();
+
             System.Drawing.Imaging.BitmapData data = texture.LockBits(new System.Drawing.Rectangle(0, 0, texture.Width, texture.Height),
                                                 System.Drawing.Imaging.ImageLockMode.ReadOnly, System.Drawing.Imaging.PixelFormat.Format32bppArgb);
 
@@ -156,9 +159,7 @@ namespace VulkanBase
             {
                 stagingBuffer = VContext.Instance.CreateBuffer(BufferUsageFlags.TransferSrc, imageSize, source);
             }
-
-
-
+            
 
             List<BufferImageCopy> bufferCopyRegions = new List<BufferImageCopy>();
             DeviceSize offset = 0;
@@ -191,7 +192,7 @@ namespace VulkanBase
 
 
 
-            Vulkan.Image textureImage = VContext.Instance.device.CreateImage
+            imageWithMemory.Image = VContext.Instance.device.CreateImage
             (
                 new ImageCreateInfo()
                 {
@@ -213,12 +214,12 @@ namespace VulkanBase
                 }
             );
 
-            MemoryRequirements textureMemoryRequirements = VContext.Instance.device.GetImageMemoryRequirements(textureImage);
+            MemoryRequirements textureMemoryRequirements = VContext.Instance.device.GetImageMemoryRequirements(imageWithMemory.Image);
 
             uint memoryTypeIndex = Util.GetMemoryTypeIndex(textureMemoryRequirements.MemoryTypeBits, MemoryPropertyFlags.DeviceLocal);
 
 
-            DeviceMemory textureImageMemory = VContext.Instance.device.AllocateMemory
+            imageWithMemory.Memory= VContext.Instance.device.AllocateMemory
             (
                 new MemoryAllocateInfo()
                 {
@@ -227,7 +228,7 @@ namespace VulkanBase
                 }
             );
 
-            VContext.Instance.device.BindImageMemory(textureImage, textureImageMemory, 0);
+            VContext.Instance.device.BindImageMemory(imageWithMemory.Image, imageWithMemory.Memory, 0);
 
             CommandBuffer commandBuffer = _commandBuffer.Value;
 
@@ -246,7 +247,7 @@ namespace VulkanBase
             {
                 OldLayout = ImageLayout.Undefined,
                 NewLayout = ImageLayout.TransferDstOptimal,
-                Image = textureImage,
+                Image = imageWithMemory.Image,
                 SubresourceRange = subresourceRange,
                 SrcAccessMask = 0,
                 DstAccessMask = AccessFlags.TransferWrite
@@ -265,7 +266,7 @@ namespace VulkanBase
             // Copy mip levels from staging buffer	
             commandBuffer.CmdCopyBufferToImage(
                 stagingBuffer.Buffer,
-                textureImage,
+                imageWithMemory.Image,
                 ImageLayout.TransferDstOptimal,
                 bufferCopyRegions.ToArray());
 
@@ -275,7 +276,7 @@ namespace VulkanBase
             {
                 OldLayout = ImageLayout.TransferDstOptimal,
                 NewLayout = ImageLayout.ShaderReadOnlyOptimal,
-                Image = textureImage,
+                Image = imageWithMemory.Image,
                 SubresourceRange = subresourceRange,
                 SrcAccessMask = AccessFlags.TransferWrite,
                 DstAccessMask = AccessFlags.ShaderRead
@@ -308,15 +309,13 @@ namespace VulkanBase
             commandBuffer.Reset(CommandBufferResetFlags.ReleaseResources);
 
             VContext.Instance.device.DestroyFence(copyFence);
-
-
+            
             VContext.Instance.device.FreeMemory(stagingBuffer.Memory);
             VContext.Instance.device.DestroyBuffer(stagingBuffer.Buffer);
+            
+            ImageView textureImageView = VContext.Instance.CreateColorImageView(imageWithMemory.Image);
 
-
-            ImageView textureImageView = VContext.Instance.CreateColorImageView(textureImage);
-
-            return textureImageView;
+            return imageWithMemory;
         }
     }
 }

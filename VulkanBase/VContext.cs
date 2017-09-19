@@ -48,12 +48,15 @@ namespace VulkanBase
 
         public RenderPass RenderPass { get; protected set; }
         public Framebuffer[] Framebuffers { get; protected set; }
+        public ImageView[] SwapchainImageViews { get; protected set; }
+
         public PipelineLayout PipelineLayout { get; set; }
         public Pipeline StaticPipeline { get; set; }
         public Pipeline AnimationPipeline { get; set; }
         public GraphicsPipelineCreateInfo DefaultGraphicsPipelineCreateInfo { get; protected set; }
 
-        protected Image[] swapchainImages;
+        public Image[] SwapchainImages { get; protected set; }
+        
 
         protected DebugReportCallbackDelegate debugReport = DebugReport;
         public DescriptorPool descriptorPool;
@@ -294,7 +297,7 @@ namespace VulkanBase
                 new CommandPoolCreateInfo()
                 {
                     QueueFamilyIndex = UsedQueueFamilyIndex,
-                    Flags = CommandPoolCreateFlags.ResetCommandBuffer
+                    Flags = CommandPoolCreateFlags.ResetCommandBuffer 
                 }
             );
         }
@@ -509,20 +512,20 @@ namespace VulkanBase
 
         private void CreateFramebufferForSwapchainImages()
         {
-            swapchainImages = device.GetSwapchainImagesKHR(swapChain);
+            SwapchainImages = device.GetSwapchainImagesKHR(swapChain);
 
             Framebuffers = new Framebuffer[imageCount];
+            SwapchainImageViews = new ImageView[imageCount];
             for (int i = 0; i < Framebuffers.Length; i++)
             {
-                ImageView swapchainImageView = CreateColorImageView(swapchainImages[i]);
-
+                SwapchainImageViews[i] = CreateColorImageView(SwapchainImages[i]);                
                 Framebuffers[i] = device.CreateFramebuffer
                 (
                     new FramebufferCreateInfo()
                     {
                         RenderPass = RenderPass,
                         AttachmentCount = 2,
-                        Attachments = new ImageView[] { swapchainImageView, DepthTextureImageView },
+                        Attachments = new ImageView[] { SwapchainImageViews[i], DepthTextureImageView },
                         Height = SurfaceHeight,
                         Width = SurfaceWidth,
                         Layers = 1
@@ -570,7 +573,7 @@ namespace VulkanBase
                 {
                     CommandPool = commandPool,
                     CommandBufferCount = 1,
-                    Level = CommandBufferLevel.Primary
+                    Level = CommandBufferLevel.Primary                    
                 }
             ).First();
 
@@ -748,7 +751,8 @@ namespace VulkanBase
                 new DescriptorPoolCreateInfo()
                 {
                     MaxSets = maxSets,
-                    PoolSizes = descriptorPoolSizes
+                    PoolSizes = descriptorPoolSizes,
+                    Flags = DescriptorPoolCreateFlags.FreeDescriptorSet,
                 }
             );
         }
@@ -824,7 +828,7 @@ namespace VulkanBase
         }
 
         public void PresentSwapchain(uint imageIndex)
-        {
+        {            
             deviceQueue.PresentKHR
             (
                 new PresentInfoKhr()

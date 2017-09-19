@@ -87,7 +87,8 @@
     <Compile Include="ShaderParsing\ShaderVariableParser.cs" />
     <Compile Include="ShaderParsing\TypeConverter.cs" />
     <Compile Include="ShaderParsing\VertexInput.cs" />
-    <Compile Include="TextureLoader.cs" />
+    <Compile Include="TextureLoading\ImageWithMemory.cs" />
+    <Compile Include="TextureLoading\TextureLoader.cs" />
     <Compile Include="Util.cs" />
     <Compile Include="VContext.cs" />
   </ItemGroup>
