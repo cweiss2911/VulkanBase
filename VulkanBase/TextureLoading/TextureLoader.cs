@@ -312,8 +312,8 @@ namespace VulkanBase.TextureLoading
             
             VContext.Instance.device.FreeMemory(stagingBuffer.Memory);
             VContext.Instance.device.DestroyBuffer(stagingBuffer.Buffer);
-            
-            ImageView textureImageView = VContext.Instance.CreateColorImageView(imageWithMemory.Image);
+
+            imageWithMemory.ImageView = VContext.Instance.CreateColorImageView(imageWithMemory.Image);
 
             return imageWithMemory;
         }
