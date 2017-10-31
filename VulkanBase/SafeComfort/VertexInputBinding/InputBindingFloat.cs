@@ -13,4 +13,3 @@ namespace VulkanBase.SafeComfort.VertexInputBinding
     }
 }
 
-}
