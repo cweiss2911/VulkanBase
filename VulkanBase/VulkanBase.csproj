@@ -75,6 +75,12 @@
     <Compile Include="Math\Vector4.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="SafeComfort\Copier.cs" />
+    <Compile Include="SafeComfort\VertexInputBinding\InputBinding.cs" />
+    <Compile Include="SafeComfort\VertexInputBinding\InputBindingFloat.cs" />
+    <Compile Include="SafeComfort\VertexInputBinding\InputBindingM4.cs" />
+    <Compile Include="SafeComfort\VertexInputBinding\InputBindingV2.cs" />
+    <Compile Include="SafeComfort\VertexInputBinding\InputBindingV3.cs" />
+    <Compile Include="SafeComfort\VertexInputBinding\MeshInputBinding.cs" />
     <Compile Include="ShaderParsing\GenericComputePipeline.cs" />
     <Compile Include="ShaderParsing\GenericGraphicsPipeline.cs" />
     <Compile Include="ShaderParsing\GenericPipeline.cs" />
@@ -95,5 +101,6 @@
   <ItemGroup>
     <None Include="packages.config" />
   </ItemGroup>
+  <ItemGroup />
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
 </Project>

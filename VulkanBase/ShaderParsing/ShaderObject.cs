@@ -53,17 +53,6 @@ namespace VulkanBase.ShaderParsing
         }
 
 
-
-        public ShaderObject(string path, ShaderStageFlags shaderStage)
-        {
-            FilePath = path;
-
-            string codeWithComments = File.ReadAllText(FilePath);
-            code = GetCodeWithoutComments(codeWithComments);
-
-            ShaderStage = shaderStage;
-        }
-
         enum FindMode
         {
             None,

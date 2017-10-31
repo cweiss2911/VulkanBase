@@ -43,7 +43,7 @@ namespace VulkanBase
         /// </summary>
         public static readonly Matrix4 Zero = new Matrix4(Vector4.Zero, Vector4.Zero, Vector4.Zero, Vector4.Zero);
 
-        public static readonly uint SizeInBytes = (uint)Marshal.SizeOf(new Matrix4());
+        public static readonly int SizeInBytes = Marshal.SizeOf(new Matrix4());
 
         #endregion
 
