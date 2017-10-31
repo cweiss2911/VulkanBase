@@ -16,7 +16,7 @@ namespace VulkanBase.SafeComfort
 
         public static void CopyToMappedMemory(Matrix4 source, IntPtr target)
         {
-            Util.CopyMemory(target, new IntPtr(&source), Matrix4.SizeInBytes);
+            Util.CopyMemory(target, new IntPtr(&source), (uint)Matrix4.SizeInBytes);
         }
 
         public static void CopyToMappedMemory(float[] source, IntPtr target, uint size)
