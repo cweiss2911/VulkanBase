@@ -11,6 +11,12 @@ namespace VulkanBase
     {
         public Buffer Buffer { get; set; }
         public DeviceMemory Memory { get; set; }
-        public uint Size { get; internal set; }        
+        public uint Size { get; internal set; }
+
+        public void Destroy()
+        {
+            VContext.Instance.device.DestroyBuffer(Buffer);            
+            VContext.Instance.device.FreeMemory(Memory);
+        }
     }
 }

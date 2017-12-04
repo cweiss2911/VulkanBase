@@ -85,7 +85,7 @@ namespace VulkanBase
             { "image2D", DescriptorType.StorageImage},
         };
 
-
+        
         public static readonly TypeConverter<string, DescriptorType> GlslToCustomDescriptorTypeConverter = new TypeConverter<string, DescriptorType>(
             new Dictionary<string, DescriptorType>()
             {

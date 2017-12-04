@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using Vulkan;
 
 namespace VulkanBase.SafeComfort.VertexInputBinding
@@ -18,6 +19,15 @@ namespace VulkanBase.SafeComfort.VertexInputBinding
             {
                 _inputBindings[i].Bind(commandBuffer);
             }
+        }
+
+        public void Clear()
+        {
+            for (int i = 0; i < _inputBindings.Count; i++)
+            {
+                _inputBindings[i].BufferWithMemory.Destroy();
+            }
+            _inputBindings = new List<InputBinding>();
         }
     }
 }

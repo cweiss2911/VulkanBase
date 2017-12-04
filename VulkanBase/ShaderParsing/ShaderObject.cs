@@ -4,6 +4,7 @@ using System.IO;
 using System.Text.RegularExpressions;
 using System.Linq;
 using System;
+using VulkanBase.ShaderParsing.Segmenting;
 
 namespace VulkanBase.ShaderParsing
 {
@@ -14,6 +15,7 @@ namespace VulkanBase.ShaderParsing
 
         private ShaderModule module;
         private string code;
+        private SegmentCollection _segmentCollection;
         private Dictionary<string, int> specializationConstantValues;
 
         public ShaderModule Module
@@ -45,105 +47,31 @@ namespace VulkanBase.ShaderParsing
             this.specializationConstantValues = specializationConstantValues;
 
             string codeWithComments = File.ReadAllText(FilePath);
-            code = GetCodeWithoutComments(codeWithComments);
-
+            code = CommentRemover.GetCodeWithoutComments(codeWithComments);
+            _segmentCollection = new SegmentCollection(code);
             string extension = Path.GetExtension(FilePath);
             ShaderStageFlags shaderStage = Constants.FileExtensionToShaderStageConverter.Convert(extension);
             ShaderStage = shaderStage;
         }
 
 
-        enum FindMode
-        {
-            None,
-            SingleLine,
-            MultiLine
-        }
-
-        private string GetCodeWithoutComments(string codeWithComments)
-        {
-            List<Tuple<int, int>> commentPlaces = new List<Tuple<int, int>>();
-
-
-            FindMode currentMode = FindMode.None;
-
-            int beginIndex = -1;
-            for (int i = 0; i < codeWithComments.Length - 1; i++)
-            {
-                if (currentMode == FindMode.None)
-                {
-                    if (codeWithComments[i] == '/' && codeWithComments[i + 1] == '*')
-                    {
-                        beginIndex = i;
-                        currentMode = FindMode.MultiLine;
-                    }
-                    else if (codeWithComments[i] == '/' && codeWithComments[i + 1] == '/')
-                    {
-                        beginIndex = i;
-                        currentMode = FindMode.SingleLine;
-                    }
-                }
-                else if (currentMode == FindMode.MultiLine)
-                {
-                    if (codeWithComments[i] == '*' && codeWithComments[i + 1] == '/' && i - beginIndex > 1)
-                    {
-                        commentPlaces.Add(new Tuple<int, int>(beginIndex, i));
-                        currentMode = FindMode.None;
-                    }
-                }
-                else if (currentMode == FindMode.SingleLine)
-                {
-                    if (codeWithComments[i] == '\r' && codeWithComments[i + 1] == '\n')
-                    {
-                        commentPlaces.Add(new Tuple<int, int>(beginIndex, i));
-                        currentMode = FindMode.None;
-                    }
-                }
-            }
-
-            if (currentMode == FindMode.SingleLine)
-            {
-                commentPlaces.Add(new Tuple<int, int>(beginIndex, codeWithComments.Length - 2));
-                currentMode = FindMode.None;
-            }
-
-            commentPlaces.Reverse();
-
-
-            string codeToBeWorkedOn = codeWithComments;
-            for (int i = 0; i < commentPlaces.Count; i++)
-            {
-                Tuple<int, int> commentPlace = commentPlaces[i];
-                codeToBeWorkedOn = codeToBeWorkedOn.Substring(0, commentPlace.Item1) + codeToBeWorkedOn.Substring(commentPlace.Item2 + 2);
-            }
-
-
-
-            return codeToBeWorkedOn;
-        }
-
         public ShaderVariable[] GetPushConstants()
         {
-            List<ShaderVariable> pushConstants = new List<ShaderVariable>();
+            ShaderVariable[] pushConstants = new ShaderVariable[0];
 
-            var match = Regex.Match(code, @"layout *\( *push_constant\ *\)");
-            if (match.Success)
+            IEnumerable<string> fields = _segmentCollection.GetPushConstantFields();
+
+            if (fields != null)
             {
-                int openingIndex = code.IndexOf("{", match.Index);
-                int closingIndex = code.IndexOf("}", match.Index);
+                pushConstants = ShaderVariableParser.Parse(fields).ToArray();
 
-                string pushconstantSegment = code.Substring(openingIndex + 1, closingIndex - openingIndex - 1);
-                IEnumerable<string> fields = pushconstantSegment.Split(';').Select(s => s.Trim());
-
-                pushConstants = ShaderVariableParser.Parse(fields);
-
-                for (int i = 0; i < pushConstants.Count; i++)
+                for (int i = 0; i < pushConstants.Length; i++)
                 {
                     pushConstants[i].ShaderStage = ShaderStage;
                 }
             }
 
-            return pushConstants.ToArray();
+            return pushConstants;
         }
 
 
@@ -152,7 +80,7 @@ namespace VulkanBase.ShaderParsing
         {
             SpecializationInfo specializationInfo = null;
             List<ShaderConstant> specializationConstants = GetSpecializationConstants();
-            
+
             if (specializationConstants.Any())
             {
                 int[] values = specializationConstants.Select(sc => specializationConstantValues[sc.Name]).ToArray();
@@ -181,27 +109,17 @@ namespace VulkanBase.ShaderParsing
         {
             List<ShaderConstant> specializationConstants = new List<ShaderConstant>();
 
-            var matches = Regex.Matches(code, @"layout *\( *constant_id.*\)");
+            IEnumerable<SpecializationConstantSegment> specializationConstantSegments = _segmentCollection.GetSegments<SpecializationConstantSegment>();
 
             uint offset = 0;
-            for (int i = 0; i < matches.Count; i++)
+            for (int i = 0; i < specializationConstantSegments.Count(); i++)
             {
-                Match match = matches[i];
+                SpecializationConstantSegment specializationConstantSegment = specializationConstantSegments.ElementAt(i);
 
-                uint constantId = uint.Parse(match.ToString().Substring(match.ToString().IndexOf("constant_id"), match.ToString().IndexOf(")") - match.ToString().IndexOf("constant_id")).Replace("constant_id", string.Empty).Replace("=", string.Empty).Trim());
-
-                string codeSegment = GetWholeCodeSegment(match.Index);
-
-                string segmentAfterConst = codeSegment.Substring(codeSegment.IndexOf("const ", StringComparison.InvariantCultureIgnoreCase) + "const ".Length);
-
-                string[] typeAndName = Util.KillDuplicateWhiteSpaces(segmentAfterConst).Split(' ');
-
-                string glslType = typeAndName[0];
-                Type type = Constants.GlslToNetType[glslType];
-                string name = typeAndName[1];
+                Type type = Constants.GlslToNetType[specializationConstantSegment.GlslType];
                 uint size = Constants.TypeToSize[type];
-
-                specializationConstants.Add(new ShaderConstant(constantId, name, type, size, offset));
+                ShaderConstant shaderConstant = new ShaderConstant(specializationConstantSegment.ConstantId, specializationConstantSegment.Name, type, size, offset);
+                specializationConstants.Add(shaderConstant);
 
                 offset += size;
             }
@@ -212,12 +130,21 @@ namespace VulkanBase.ShaderParsing
         public Dictionary<int, ShaderUniformSet> GetDescriptorSetLayouts()
         {
             Dictionary<int, ShaderUniformSet> sets = new Dictionary<int, ShaderUniformSet>();
+            
+            IEnumerable<DescriptorSegment> descriptorSegments = _segmentCollection.GetSegments<DescriptorSegment>();
 
-            List<DescriptorSetLayout> descriptorSetLayouts = new List<DescriptorSetLayout>();
+            for (int i = 0; i < descriptorSegments.Count(); i++)
+            {
+
+            }
+            /*
+            if (!sets.ContainsKey(set))
+            {
+                sets.Add(set, new ShaderUniformSet(set));
+            }
+            sets[set].ShaderUniforms.Add(shaderUniform);*/
 
             MatchCollection matches = Regex.Matches(code, @"layout *\( *(( *std140 *| *set *= *\d*) *, *){0,1} *binding *= *\d*\) *(readonly){0,1} *(buffer|uniform) ");
-
-
 
             for (int i = 0; i < matches.Count; i++)
             {
@@ -233,7 +160,7 @@ namespace VulkanBase.ShaderParsing
 
                 string bufferOrUniformSegment = Regex.Match(theMatch, @"(buffer |uniform )").ToString();
 
-                string codeSegment = GetWholeCodeSegment(match.Index);
+                string codeSegment = SegmentParser.GetWholeCodeSegment(code, match.Index);
 
                 DescriptorType descriptorType;
                 string name;
@@ -299,7 +226,7 @@ namespace VulkanBase.ShaderParsing
 
                 string bufferOrUniformSegment = Regex.Match(theMatch, @"(buffer |uniform )").ToString();
 
-                string codeSegment = GetWholeCodeSegment(match.Index);
+                string codeSegment = SegmentParser.GetWholeCodeSegment(code, match.Index);
 
                 DescriptorType descriptorType;
                 string name;
@@ -349,57 +276,22 @@ namespace VulkanBase.ShaderParsing
             return sets;
         }
 
-        private string GetWholeCodeSegment(int index)
-        {
-            int curlyBalance = 0;
 
-            for (int i = index; i < code.Length; i++)
-            {
-                if (code[i] == '{')
-                {
-                    curlyBalance++;
-                }
-                else if (code[i] == '}')
-                {
-                    curlyBalance--;
-                }
-                else if (code[i] == ';')
-                {
-                    if (curlyBalance == 0)
-                    {
-                        return code.Substring(index, i - index);
-                    }
-                }
-            }
-
-            throw new Exception("GLSL malformed");
-        }
 
         public VertexInput[] GetVertexInput(IEnumerable<uint> bindingsWithInstanceRate = null)
         {
             List<VertexInput> vertexInputs = new List<VertexInput>();
 
-            MatchCollection matches = Regex.Matches(code, @"layout *\( *location *= *\d* *\) *in *");
+            IEnumerable<VertexInputSegment> vertexInputSegments = _segmentCollection.GetSegments<VertexInputSegment>();
 
-            for (int i = 0; i < matches.Count; i++)
+            for (int i = 0; i < vertexInputSegments.Count(); i++)
             {
-                Match match = matches[i];
+                VertexInputSegment vertexInputSegment = vertexInputSegments.ElementAt(i);
 
-                uint binding = uint.Parse(match.ToString().Substring(match.ToString().IndexOf("location"), match.ToString().IndexOf(")") - match.ToString().IndexOf("location")).Replace("location", string.Empty).Replace("=", string.Empty).Trim());
-
-                string codeSegment = GetWholeCodeSegment(match.Index);
-
-                string segmentAfterIn = codeSegment.Substring(codeSegment.IndexOf("in ", StringComparison.InvariantCultureIgnoreCase) + "in ".Length);
-
-                string[] typeAndName = Util.KillDuplicateWhiteSpaces(segmentAfterIn).Split(' ');
-
-                string glslType = typeAndName[0];
-                Type type = Constants.GlslToNetType[glslType];
-
-                string name = typeAndName[1];
+                Type type = Constants.GlslToNetType[vertexInputSegment.GlslType];
 
                 VertexInputRate inputRate = VertexInputRate.Vertex;
-                if (bindingsWithInstanceRate != null && bindingsWithInstanceRate.Contains(binding))
+                if (bindingsWithInstanceRate != null && bindingsWithInstanceRate.Contains(vertexInputSegment.Binding))
                 {
                     inputRate = VertexInputRate.Instance;
                 }
@@ -411,13 +303,13 @@ namespace VulkanBase.ShaderParsing
                 {
                     VertexInput vertexInput = new VertexInput()
                     {
-                        Name = name,
-                        GlslType = glslType,
-                        Binding = binding,
+                        Name = vertexInputSegment.Name,
+                        GlslType = vertexInputSegment.GlslType,
+                        Binding = vertexInputSegment.Binding,
                         InputRate = inputRate,
                         Stride = stride,
                         Format = format,
-                        Location = binding,
+                        Location = vertexInputSegment.Binding,
                         Offset = 0,
                     };
 
@@ -433,13 +325,13 @@ namespace VulkanBase.ShaderParsing
 
                         VertexInput vertexInput = new VertexInput()
                         {
-                            Name = name,
-                            GlslType = glslType,
-                            Binding = binding,
+                            Name = vertexInputSegment.Name,
+                            GlslType = vertexInputSegment.GlslType,
+                            Binding = vertexInputSegment.Binding,
                             InputRate = inputRate,
                             Stride = stride,
                             Format = format,
-                            Location = binding + j,
+                            Location = vertexInputSegment.Binding + j,
                             Offset = offset,
                         };
 
@@ -447,6 +339,7 @@ namespace VulkanBase.ShaderParsing
                     }
                 }
             }
+
             return vertexInputs.ToArray();
 
         }

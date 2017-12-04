@@ -52,6 +52,11 @@
   <ItemGroup>
     <Compile Include="BufferObjects\BufferviewWithMemory.cs" />
     <Compile Include="Collada\ModelLibrary.cs" />
+    <Compile Include="Properties\Resources.Designer.cs">
+      <AutoGen>True</AutoGen>
+      <DesignTime>True</DesignTime>
+      <DependentUpon>Resources.resx</DependentUpon>
+    </Compile>
     <Compile Include="SafeComfort\BufferviewManager.cs" />
     <Compile Include="SafeComfort\BufferManager.cs" />
     <Compile Include="BufferObjects\BufferWithMemory.cs" />
@@ -81,10 +86,21 @@
     <Compile Include="SafeComfort\VertexInputBinding\InputBindingV2.cs" />
     <Compile Include="SafeComfort\VertexInputBinding\InputBindingV3.cs" />
     <Compile Include="SafeComfort\VertexInputBinding\MeshInputBinding.cs" />
+    <Compile Include="ShaderParsing\CommentRemover.cs" />
     <Compile Include="ShaderParsing\GenericComputePipeline.cs" />
     <Compile Include="ShaderParsing\GenericGraphicsPipeline.cs" />
     <Compile Include="ShaderParsing\GenericPipeline.cs" />
     <Compile Include="ShaderParsing\PushConstantManager.cs" />
+    <Compile Include="ShaderParsing\Segmenting\DescriptorSegment.cs" />
+    <Compile Include="ShaderParsing\Segmenting\OutSegment.cs" />
+    <Compile Include="ShaderParsing\Segmenting\PushConstantSegment.cs" />
+    <Compile Include="ShaderParsing\Segmenting\Segment.cs" />
+    <Compile Include="ShaderParsing\Segmenting\SegmentCollection.cs" />
+    <Compile Include="ShaderParsing\Segmenting\SegmentFactory.cs" />
+    <Compile Include="ShaderParsing\Segmenting\SegmentParser.cs" />
+    <Compile Include="ShaderParsing\Segmenting\SpecializationConstantSegment.cs" />
+    <Compile Include="ShaderParsing\Segmenting\UniformSegmentFactory.cs" />
+    <Compile Include="ShaderParsing\Segmenting\VertexInputSegment.cs" />
     <Compile Include="ShaderParsing\ShaderConstant.cs" />
     <Compile Include="ShaderParsing\ShaderObject.cs" />
     <Compile Include="ShaderParsing\ShaderUniform.cs" />
@@ -95,12 +111,23 @@
     <Compile Include="ShaderParsing\VertexInput.cs" />
     <Compile Include="TextureLoading\ImageWithMemory.cs" />
     <Compile Include="TextureLoading\TextureLoader.cs" />
+    <Compile Include="Text\Font.cs" />
+    <Compile Include="Utility\RectangleMaker.cs" />
+    <Compile Include="Text\Label.cs" />
+    <Compile Include="Text\TextDisplayer.cs" />
     <Compile Include="Util.cs" />
     <Compile Include="VContext.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="packages.config" />
+    <EmbeddedResource Include="Properties\Resources.resx">
+      <Generator>ResXFileCodeGenerator</Generator>
+      <LastGenOutput>Resources.Designer.cs</LastGenOutput>
+    </EmbeddedResource>
+    <None Include="Resources\Courier.csv" />
   </ItemGroup>
-  <ItemGroup />
+  <ItemGroup>
+    <None Include="Resources\Courier.png" />
+  </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
 </Project>
