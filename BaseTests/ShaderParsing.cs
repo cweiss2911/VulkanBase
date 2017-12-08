@@ -68,5 +68,13 @@ namespace BaseTests
                 }
             );
         }
+
+        [TestMethod]
+        public void Embedded()
+        {
+
+            new EmbeddedShaderObject("VulkanBase.Text.Shader.text.frag");
+            
+        }
     }
 }

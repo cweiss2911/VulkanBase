@@ -19,23 +19,20 @@ namespace VulkanBase.Text
 
         private ImageWithMemory _imageWithMemory;
         private DescriptorSet _imageDescriptorSet;
-
-
-
+        
         public float TotalWidth { get; private set; }
 
 
         public TextDisplayer()
         {
-
             _textPipeline = new GenericGraphicsPipeline(
-                new List<ShaderObject>()
-                {
-                    new ShaderObject(@"C:\Projects\TheSorter\Shader\text.vert"),
-                    new ShaderObject(@"C:\Projects\TheSorter\Shader\text.frag")
-                }
-            );
-            
+                    new List<ShaderObject>()
+                    {
+                    new EmbeddedShaderObject("VulkanBase.Text.Shader.text.frag"),
+                    new EmbeddedShaderObject("VulkanBase.Text.Shader.text.vert")
+                    }
+                );
+
             _font = new Font(Properties.Resources.Courier, Properties.Resources.CourierCharacterWidth);
             _imageWithMemory = TextureLoader.CreateImageWithMemory(_font.Texture);
             _imageDescriptorSet = _textPipeline.CreateDescriptorSet(0, 0, _imageWithMemory.ImageView);

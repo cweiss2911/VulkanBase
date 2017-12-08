@@ -87,6 +87,7 @@
     <Compile Include="SafeComfort\VertexInputBinding\InputBindingV3.cs" />
     <Compile Include="SafeComfort\VertexInputBinding\MeshInputBinding.cs" />
     <Compile Include="ShaderParsing\CommentRemover.cs" />
+    <Compile Include="ShaderParsing\EmbeddedShaderObject.cs" />
     <Compile Include="ShaderParsing\GenericComputePipeline.cs" />
     <Compile Include="ShaderParsing\GenericGraphicsPipeline.cs" />
     <Compile Include="ShaderParsing\GenericPipeline.cs" />
@@ -125,6 +126,10 @@
       <LastGenOutput>Resources.Designer.cs</LastGenOutput>
     </EmbeddedResource>
     <None Include="Resources\Courier.csv" />
+    <EmbeddedResource Include="Text\Shader\text.frag" />
+    <EmbeddedResource Include="Text\Shader\text.frag.spv" />
+    <EmbeddedResource Include="Text\Shader\text.vert" />
+    <EmbeddedResource Include="Text\Shader\text.vert.spv" />
   </ItemGroup>
   <ItemGroup>
     <None Include="Resources\Courier.png" />

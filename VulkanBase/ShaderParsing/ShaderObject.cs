@@ -18,7 +18,7 @@ namespace VulkanBase.ShaderParsing
         private SegmentCollection _segmentCollection;
         private Dictionary<string, int> specializationConstantValues;
 
-        public ShaderModule Module
+        public virtual ShaderModule Module
         {
             get
             {
@@ -28,17 +28,16 @@ namespace VulkanBase.ShaderParsing
                     (
                        new ShaderModuleCreateInfo()
                        {
-                           CodeBytes = File.ReadAllBytes($"{FilePath}.spv")
+                           CodeBytes = GetBytesFromPath($"{FilePath}.spv")
                        }
                     );
                 }
                 return module;
             }
         }
-
+        
         public ShaderObject(string path) : this(path, null)
         {
-
         }
 
         public ShaderObject(string path, Dictionary<string, int> specializationConstantValues)
@@ -46,7 +45,7 @@ namespace VulkanBase.ShaderParsing
             FilePath = path;
             this.specializationConstantValues = specializationConstantValues;
 
-            string codeWithComments = File.ReadAllText(FilePath);
+            string codeWithComments = GetContentFromPath(FilePath);
             code = CommentRemover.GetCodeWithoutComments(codeWithComments);
             _segmentCollection = new SegmentCollection(code);
             string extension = Path.GetExtension(FilePath);
@@ -54,6 +53,15 @@ namespace VulkanBase.ShaderParsing
             ShaderStage = shaderStage;
         }
 
+        protected virtual string GetContentFromPath(string path)
+        {
+            return File.ReadAllText(path);
+        }
+
+        protected virtual byte[] GetBytesFromPath(string path)
+        {
+            return File.ReadAllBytes(path);
+        }
 
         public ShaderVariable[] GetPushConstants()
         {
@@ -130,7 +138,7 @@ namespace VulkanBase.ShaderParsing
         public Dictionary<int, ShaderUniformSet> GetDescriptorSetLayouts()
         {
             Dictionary<int, ShaderUniformSet> sets = new Dictionary<int, ShaderUniformSet>();
-            
+
             IEnumerable<DescriptorSegment> descriptorSegments = _segmentCollection.GetSegments<DescriptorSegment>();
 
             for (int i = 0; i < descriptorSegments.Count(); i++)
