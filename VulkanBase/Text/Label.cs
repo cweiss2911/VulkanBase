@@ -17,7 +17,7 @@ namespace VulkanBase.Text
 
         private int _vertexCount;
         private MeshInputBinding _meshInputBinding = new MeshInputBinding();
-        
+
 
         public string Text
         {
@@ -47,6 +47,12 @@ namespace VulkanBase.Text
             Position = position;
             Text = text;
         }
+
+        public Label(string text, Vector2 position) : this(text, position, new Font(Properties.Resources.Courier, Properties.Resources.CourierCharacterWidth))
+        {
+        }
+
+
 
         private void BuildLabel()
         {
@@ -80,9 +86,9 @@ namespace VulkanBase.Text
 
                 RectangleMaker.AddRectangleToList(texCoordList, xcoord, xcoord + TextureFontSize * width / 32, ycoord, ycoord + TextureFontSize);
             }
-            
+
             _vertexCount = vertexList.Count;
-            
+
 
             _meshInputBinding.AddInputBinding(new InputBindingV3(BufferUsageFlags.VertexBuffer, vertexList, 0));
             _meshInputBinding.AddInputBinding(new InputBindingV2(BufferUsageFlags.VertexBuffer, texCoordList, 1));
@@ -91,7 +97,7 @@ namespace VulkanBase.Text
         public void Render(CommandBuffer commandBuffer, GenericGraphicsPipeline textPipeline)
         {
             _meshInputBinding.Bind(commandBuffer);
-            
+
             textPipeline.PushConstantManager.SetPushConstant(commandBuffer, "modelMatrix", _modelMatrix);
 
             commandBuffer.CmdDraw((uint)_vertexCount, 1, 0, 0);
