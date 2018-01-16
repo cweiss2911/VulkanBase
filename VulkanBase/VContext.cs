@@ -56,7 +56,7 @@ namespace VulkanBase
         public GraphicsPipelineCreateInfo DefaultGraphicsPipelineCreateInfo { get; protected set; }
 
         public Image[] SwapchainImages { get; protected set; }
-        
+
 
         protected DebugReportCallbackDelegate debugReport = DebugReport;
         public DescriptorPool descriptorPool;
@@ -80,7 +80,7 @@ namespace VulkanBase
 
         public VContext()
         {
-            
+
         }
 
         public void Init(IntPtr windowHandle)
@@ -211,14 +211,14 @@ namespace VulkanBase
                     ApplicationInfo = new ApplicationInfo()
                     {
                         EngineVersion = 1,
-                        ApiVersion = Vulkan.Version.Make(1, 0, 24)
-
                     },
 
                     EnabledLayerNames = enabledLayerNames,
                     EnabledExtensionNames = enabledExtensionNames,
                 }
             );
+
+
             instance.CreateDebugReportCallbackEXT
             (
                 new DebugReportCallbackCreateInfoExt()
@@ -297,7 +297,7 @@ namespace VulkanBase
                 new CommandPoolCreateInfo()
                 {
                     QueueFamilyIndex = UsedQueueFamilyIndex,
-                    Flags = CommandPoolCreateFlags.ResetCommandBuffer 
+                    Flags = CommandPoolCreateFlags.ResetCommandBuffer
                 }
             );
         }
@@ -518,7 +518,7 @@ namespace VulkanBase
             SwapchainImageViews = new ImageView[imageCount];
             for (int i = 0; i < Framebuffers.Length; i++)
             {
-                SwapchainImageViews[i] = CreateColorImageView(SwapchainImages[i]);                
+                SwapchainImageViews[i] = CreateColorImageView(SwapchainImages[i]);
                 Framebuffers[i] = device.CreateFramebuffer
                 (
                     new FramebufferCreateInfo()
@@ -573,7 +573,7 @@ namespace VulkanBase
                 {
                     CommandPool = commandPool,
                     CommandBufferCount = 1,
-                    Level = CommandBufferLevel.Primary                    
+                    Level = CommandBufferLevel.Primary
                 }
             ).First();
 
@@ -828,7 +828,7 @@ namespace VulkanBase
         }
 
         public void PresentSwapchain(uint imageIndex)
-        {            
+        {
             deviceQueue.PresentKHR
             (
                 new PresentInfoKhr()
