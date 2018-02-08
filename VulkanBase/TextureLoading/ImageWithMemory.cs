@@ -11,7 +11,7 @@ namespace VulkanBase.TextureLoading
     {
         public Image Image { get; set; }
         public ImageView ImageView { get; set; }        
-        public DeviceMemory Memory { get; internal set; }
+        public DeviceMemory Memory { get;  set; }
 
         public void Destroy()
         {

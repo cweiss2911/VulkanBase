@@ -20,38 +20,41 @@ namespace VulkanBase.TextureLoading
                     Level = CommandBufferLevel.Primary
                 }
             ).First());
-        
+
 
 
         public static ImageWithMemory CreateImageWithMemory(
-        uint width,
-        uint height,
-        ImageUsageFlags imageUsageFlags,
-        ImageLayout imageLayout,
-        AccessFlags accessMask)
+            uint width,
+            uint height,
+            ImageUsageFlags imageUsageFlags,
+            ImageLayout imageLayout,
+            AccessFlags accessMask,
+            SampleCountFlags samples = SampleCountFlags.Count1)
         {
-            ImageWithMemory imageWithMemory = new ImageWithMemory();
-            imageWithMemory.Image = VContext.Instance.device.CreateImage
-            (
-                new ImageCreateInfo()
-                {
-                    ImageType = ImageType.Image2D,
-                    Format = VContext.bmpColorFormat,
-                    Extent = new Extent3D()
+            ImageWithMemory imageWithMemory = new ImageWithMemory
+            {
+                Image = VContext.Instance.device.CreateImage
+                (
+                    new ImageCreateInfo()
                     {
-                        Width = width,
-                        Height = height,
-                        Depth = 1
-                    },
-                    MipLevels = 1,
-                    ArrayLayers = 1,
-                    Samples = SampleCountFlags.Count1,
-                    Tiling = ImageTiling.Optimal,
-                    Usage = imageUsageFlags,
-                    SharingMode = SharingMode.Exclusive,
-                    InitialLayout = ImageLayout.Undefined
-                }
-            );
+                        ImageType = ImageType.Image2D,
+                        Format = VContext.ColorFormat,
+                        Extent = new Extent3D()
+                        {
+                            Width = width,
+                            Height = height,
+                            Depth = 1
+                        },
+                        MipLevels = 1,
+                        ArrayLayers = 1,
+                        Samples = samples,
+                        Tiling = ImageTiling.Optimal,
+                        Usage = imageUsageFlags,
+                        SharingMode = SharingMode.Exclusive,
+                        InitialLayout = ImageLayout.Undefined
+                    }
+                )
+            };
 
             MemoryRequirements textureMemoryRequirements = VContext.Instance.device.GetImageMemoryRequirements(imageWithMemory.Image);
             uint memoryTypeIndex = Util.GetMemoryTypeIndex(textureMemoryRequirements.MemoryTypeBits, MemoryPropertyFlags.DeviceLocal);
@@ -127,15 +130,64 @@ namespace VulkanBase.TextureLoading
                 VContext.Instance.device.DestroyFence(fence);
             }
 
-            imageWithMemory.ImageView = VContext.Instance.CreateColorImageView(imageWithMemory.Image);
+            imageWithMemory.ImageView = VContext.Instance.CreateImageView(imageWithMemory.Image, VContext.ColorFormat, ImageAspectFlags.Color);
 
             return imageWithMemory;
         }
-        
 
+        public static ImageWithMemory CreateSampledImageWithMemory(
+            uint width,
+            uint height,
+            ImageUsageFlags imageUsageFlags,            
+            SampleCountFlags samples,
+            Format format,
+            ImageAspectFlags imageAspectFlags)
+        {
+            ImageWithMemory imageWithMemory = new ImageWithMemory
+            {
+                Image = VContext.Instance.device.CreateImage
+                (
+                    new ImageCreateInfo()
+                    {
+                        ImageType = ImageType.Image2D,
+                        Format = format,
+                        Extent = new Extent3D()
+                        {
+                            Width = width,
+                            Height = height,
+                            Depth = 1
+                        },
+                        MipLevels = 1,
+                        ArrayLayers = 1,
+                        Samples = samples,
+                        Tiling = ImageTiling.Optimal,
+                        Usage = imageUsageFlags,
+                        SharingMode = SharingMode.Exclusive,
+                        InitialLayout = ImageLayout.Undefined
+                    }
+                )
+            };
+
+            MemoryRequirements textureMemoryRequirements = VContext.Instance.device.GetImageMemoryRequirements(imageWithMemory.Image);
+            uint memoryTypeIndex = Util.GetMemoryTypeIndex(textureMemoryRequirements.MemoryTypeBits, MemoryPropertyFlags.DeviceLocal);
+
+            imageWithMemory.Memory = VContext.Instance.device.AllocateMemory
+            (
+                new MemoryAllocateInfo()
+                {
+                    AllocationSize = textureMemoryRequirements.Size,
+                    MemoryTypeIndex = memoryTypeIndex
+                }
+            );
+            VContext.Instance.device.BindImageMemory(imageWithMemory.Image, imageWithMemory.Memory, 0);
+
+            imageWithMemory.ImageView = VContext.Instance.CreateImageView(imageWithMemory.Image, format, imageAspectFlags);
+
+            return imageWithMemory;
+        }
 
         public static ImageWithMemory CreateImageWithMemory(
-            Bitmap texture,            
+            Bitmap texture,
             bool forceLinear = false,
             ImageUsageFlags imageUsageFlags = ImageUsageFlags.Sampled,
             ImageLayout imageLayout = ImageLayout.ShaderReadOnlyOptimal)
@@ -159,7 +211,7 @@ namespace VulkanBase.TextureLoading
             {
                 stagingBuffer = VContext.Instance.CreateBuffer(BufferUsageFlags.TransferSrc, imageSize, source);
             }
-            
+
 
             List<BufferImageCopy> bufferCopyRegions = new List<BufferImageCopy>();
             DeviceSize offset = 0;
@@ -197,7 +249,7 @@ namespace VulkanBase.TextureLoading
                 new ImageCreateInfo()
                 {
                     ImageType = ImageType.Image2D,
-                    Format = VContext.bmpColorFormat,
+                    Format = VContext.ColorFormat,
                     Extent = new Extent3D()
                     {
                         Width = (uint)texture.Width,
@@ -219,7 +271,7 @@ namespace VulkanBase.TextureLoading
             uint memoryTypeIndex = Util.GetMemoryTypeIndex(textureMemoryRequirements.MemoryTypeBits, MemoryPropertyFlags.DeviceLocal);
 
 
-            imageWithMemory.Memory= VContext.Instance.device.AllocateMemory
+            imageWithMemory.Memory = VContext.Instance.device.AllocateMemory
             (
                 new MemoryAllocateInfo()
                 {
@@ -309,11 +361,11 @@ namespace VulkanBase.TextureLoading
             commandBuffer.Reset(CommandBufferResetFlags.ReleaseResources);
 
             VContext.Instance.device.DestroyFence(copyFence);
-            
+
             VContext.Instance.device.FreeMemory(stagingBuffer.Memory);
             VContext.Instance.device.DestroyBuffer(stagingBuffer.Buffer);
 
-            imageWithMemory.ImageView = VContext.Instance.CreateColorImageView(imageWithMemory.Image);
+            imageWithMemory.ImageView = VContext.Instance.CreateImageView(imageWithMemory.Image, VContext.ColorFormat, ImageAspectFlags.Color);
 
             return imageWithMemory;
         }

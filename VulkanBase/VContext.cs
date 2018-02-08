@@ -25,8 +25,10 @@ namespace VulkanBase
             }
         }
 
-        public const Format bmpColorFormat = Format.B8G8R8A8Unorm;
-        public const Format depthFormat = Format.D16Unorm;
+
+
+        public const Format ColorFormat = Format.B8G8R8A8Unorm;
+        public const Format DepthFormat = Format.D16Unorm;
 
         [UnmanagedFunctionPointer(CallingConvention.StdCall, CharSet = CharSet.Ansi)]
         protected unsafe delegate Bool32 DebugReportCallbackDelegate(DebugReportFlagsExt flags, DebugReportObjectTypeExt objectType, ulong @object, IntPtr location, int messageCode, string layerPrefix, string message, IntPtr userData);
@@ -77,6 +79,8 @@ namespace VulkanBase
 
         public List<Action<DebugReportFlagsExt, string, int, string>> DebugCallbacks { get; private set; } = new List<Action<DebugReportFlagsExt, string, int, string>>();
         public float[] ClearColorValue { get; set; } = new float[] { 0, 0, 0, 0 };
+
+        public SampleCountFlags Samples { get; set; } = SampleCountFlags.Count1;
 
         public VContext()
         {
@@ -180,7 +184,7 @@ namespace VulkanBase
                 },
                 MultisampleState = new PipelineMultisampleStateCreateInfo()
                 {
-                    RasterizationSamples = SampleCountFlags.Count1,
+                    RasterizationSamples = Samples,
                     SampleShadingEnable = true,
                     MinSampleShading = 0f
                 }
@@ -323,9 +327,9 @@ namespace VulkanBase
             SurfaceHeight = physicalDevice.GetSurfaceCapabilitiesKHR(surface).CurrentExtent.Height;
         }
 
-        public ImageView CreateDepthImageView()
+        public virtual ImageView CreateDepthImageView()
         {
-            FormatProperties formatProperties = physicalDevice.GetFormatProperties(depthFormat);
+            FormatProperties formatProperties = physicalDevice.GetFormatProperties(DepthFormat);
 
             ImageTiling it = ImageTiling.Linear;
             if ((formatProperties.LinearTilingFeatures & FormatFeatureFlags.DepthStencilAttachment) != FormatFeatureFlags.DepthStencilAttachment)
@@ -346,7 +350,7 @@ namespace VulkanBase
                 new ImageCreateInfo()
                 {
                     ImageType = ImageType.Image2D,
-                    Format = depthFormat,
+                    Format = DepthFormat,
                     Extent = new Extent3D()
                     {
                         Width = (uint)SurfaceWidth,
@@ -378,36 +382,13 @@ namespace VulkanBase
             );
 
             device.BindImageMemory(depthTextureImage, textureImageMemory, 0);
-
-            ImageView depthTextureImageView = device.CreateImageView
-            (
-                new ImageViewCreateInfo()
-                {
-                    Image = depthTextureImage,
-                    ViewType = ImageViewType.View2D,
-                    Format = depthFormat,
-                    Components = new ComponentMapping()
-                    {
-                        R = ComponentSwizzle.R,
-                        G = ComponentSwizzle.G,
-                        B = ComponentSwizzle.B,
-                        A = ComponentSwizzle.A,
-                    },
-                    SubresourceRange = new ImageSubresourceRange()
-                    {
-                        AspectMask = ImageAspectFlags.Depth,
-                        BaseMipLevel = 0,
-                        LevelCount = 1,
-                        BaseArrayLayer = 0,
-                        LayerCount = 1,
-                    }
-                }
-            );
+            
+            ImageView depthTextureImageView = CreateImageView(depthTextureImage, DepthFormat, ImageAspectFlags.Depth);
 
             return depthTextureImageView;
         }
 
-        private void CreateRenderPass()
+        protected virtual void CreateRenderPass()
         {
             RenderPass = device.CreateRenderPass
             (
@@ -418,8 +399,8 @@ namespace VulkanBase
                     {
                         new AttachmentDescription()
                         {
-                            Format = bmpColorFormat,
-                            Samples = SampleCountFlags.Count1,
+                            Format = ColorFormat,
+                            Samples = Samples,
                             LoadOp = AttachmentLoadOp.Clear,
                             StoreOp = AttachmentStoreOp.Store,
                             StencilLoadOp = AttachmentLoadOp.DontCare,
@@ -429,8 +410,8 @@ namespace VulkanBase
                         },
                         new AttachmentDescription()
                         {
-                            Format =  depthFormat,
-                            Samples = SampleCountFlags.Count1,
+                            Format =  DepthFormat,
+                            Samples = Samples,
                             LoadOp = AttachmentLoadOp.Clear,
                             StoreOp = AttachmentStoreOp.Store,
                             StencilLoadOp = AttachmentLoadOp.Load,
@@ -510,7 +491,7 @@ namespace VulkanBase
         }
 
 
-        private void CreateFramebufferForSwapchainImages()
+        protected virtual void CreateFramebufferForSwapchainImages()
         {
             SwapchainImages = device.GetSwapchainImagesKHR(swapChain);
 
@@ -518,7 +499,7 @@ namespace VulkanBase
             SwapchainImageViews = new ImageView[imageCount];
             for (int i = 0; i < Framebuffers.Length; i++)
             {
-                SwapchainImageViews[i] = CreateColorImageView(SwapchainImages[i]);
+                SwapchainImageViews[i] = CreateImageView(SwapchainImages[i], ColorFormat, ImageAspectFlags.Color);
                 Framebuffers[i] = device.CreateFramebuffer
                 (
                     new FramebufferCreateInfo()
@@ -772,7 +753,7 @@ namespace VulkanBase
             BeginRenderPass(commandBuffer, Framebuffers[imageIndex]);
         }
 
-        public void BeginRenderPass(CommandBuffer commandBuffer, Framebuffer framebuffer)
+        public virtual void BeginRenderPass(CommandBuffer commandBuffer, Framebuffer framebuffer)
         {
             commandBuffer.CmdBeginRenderPass
             (
@@ -839,7 +820,7 @@ namespace VulkanBase
             );
         }
 
-        public ImageView CreateColorImageView(Image image)
+        public ImageView CreateImageView(Image image, Format format, ImageAspectFlags aspectMask)
         {
             return device.CreateImageView
             (
@@ -847,7 +828,7 @@ namespace VulkanBase
                 {
                     Image = image,
                     ViewType = ImageViewType.View2D,
-                    Format = bmpColorFormat,
+                    Format = format,
                     Components = new ComponentMapping()
                     {
                         R = ComponentSwizzle.R,
@@ -857,7 +838,7 @@ namespace VulkanBase
                     },
                     SubresourceRange = new ImageSubresourceRange()
                     {
-                        AspectMask = ImageAspectFlags.Color,
+                        AspectMask = aspectMask,
                         BaseMipLevel = 0,
                         LevelCount = 1,
                         BaseArrayLayer = 0,
