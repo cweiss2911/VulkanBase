@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 
 namespace VulkanBase.ShaderParsing.Segmenting
 {
-    class SegmentCollection
+    public class SegmentCollection
     {
         private string _code;
         List<Segment> _segments = new List<Segment>();

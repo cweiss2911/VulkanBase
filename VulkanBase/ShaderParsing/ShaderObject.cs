@@ -10,13 +10,16 @@ namespace VulkanBase.ShaderParsing
 {
     public unsafe class ShaderObject
     {
-        public string FilePath { get; private set; }
-        public ShaderStageFlags ShaderStage { get; private set; }
+        public string FilePath { get; protected set; }
 
-        private ShaderModule module;
-        private string code;
-        private SegmentCollection _segmentCollection;
-        private Dictionary<string, int> specializationConstantValues;
+        protected Dictionary<string, int> _specializationConstantValues;
+
+        public ShaderStageFlags ShaderStage { get; protected set; }
+
+        protected ShaderModule module;
+        protected string code;
+        protected SegmentCollection _segmentCollection;
+        protected Dictionary<string, int> specializationConstantValues;
 
         public virtual ShaderModule Module
         {
@@ -43,8 +46,14 @@ namespace VulkanBase.ShaderParsing
         public ShaderObject(string path, Dictionary<string, int> specializationConstantValues)
         {
             FilePath = path;
-            this.specializationConstantValues = specializationConstantValues;
+            _specializationConstantValues = specializationConstantValues;
 
+            Init();
+            
+        }
+
+        protected virtual void Init()
+        {
             string codeWithComments = GetContentFromPath(FilePath);
             code = CommentRemover.GetCodeWithoutComments(codeWithComments);
             _segmentCollection = new SegmentCollection(code);
