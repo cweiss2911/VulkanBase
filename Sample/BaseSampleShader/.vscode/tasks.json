@@ -1,0 +1,11 @@
+{
+    "version": "0.1.0",
+    "tasks": [
+        {
+            "taskName": "build",
+            "command": "glslangValidator.exe ",
+            "args": ["-V", "${relativeFile}", "-o", "${fileDirname}\\${fileBasenameNoExtension}${fileExtname}.spv"],
+            "showOutput": "always"
+        }
+    ]
+}

@@ -1,4 +1,9 @@
-﻿using System;
+﻿using log4net;
+using log4net.Appender;
+using log4net.Core;
+using log4net.Layout;
+using log4net.Repository.Hierarchy;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Runtime.InteropServices;
@@ -71,6 +76,7 @@ namespace VulkanBase
         protected uint imageCount;
         public SwapchainKhr swapChain;
         protected Format swapChainColorFormat;
+        protected ILog logger;
 
         public BufferManager BufferManager { get; private set; } = new BufferManager();
         public BufferviewManager BufferviewManager { get; private set; } = new BufferviewManager();
@@ -84,27 +90,64 @@ namespace VulkanBase
 
         public VContext()
         {
+            InitLoggingConfig();
+            logger = LogManager.GetLogger("VulkanLogger");
+        }
 
+        private void InitLoggingConfig()
+        {
+            Hierarchy hierarchy = (Hierarchy)LogManager.GetRepository();
+
+            PatternLayout patternLayout = new PatternLayout();
+            patternLayout.ConversionPattern = "%date [%thread] %-5level %logger - %message%newline";
+            patternLayout.ActivateOptions();
+
+            RollingFileAppender roller = new RollingFileAppender();
+            roller.AppendToFile = false;
+            roller.File = @"Logs\VulkanErrors.log";
+            roller.Layout = patternLayout;
+            roller.MaxSizeRollBackups = 5;
+            roller.MaximumFileSize = "1GB";
+            roller.RollingStyle = RollingFileAppender.RollingMode.Size;
+            roller.StaticLogFileName = true;
+            roller.ActivateOptions();
+            hierarchy.Root.AddAppender(roller);
+
+            hierarchy.Root.Level = Level.Info;
+            hierarchy.Configured = true;
         }
 
         public void Init(IntPtr windowHandle)
         {
-            CreateInstance();
-            physicalDevice = instance.EnumeratePhysicalDevices().First();
-            CreateDevice();
-            CreateCommandPool();
-
-            if (windowHandle != IntPtr.Zero)
+            try
             {
-                CreateSurface(windowHandle);
-                DepthTextureImageView = CreateDepthImageView();
-                CreateRenderPass();
-                CreateSwapChain();
-                CreateFramebufferForSwapchainImages();
-                CreateSampler();
-            }
+                CreateInstance();
+                physicalDevice = instance.EnumeratePhysicalDevices().First();
+                CreateDevice();
+                CreateCommandPool();
 
-            CreateDefaultGraphicsPipelineCreateInfo();
+                if (windowHandle != IntPtr.Zero)
+                {
+                    CreateSurface(windowHandle);
+                    DepthTextureImageView = CreateDepthImageView();
+                    CreateRenderPass();
+                    CreateSwapChain();
+                    CreateFramebufferForSwapchainImages();
+                    CreateSampler();
+                }
+
+                CreateDefaultGraphicsPipelineCreateInfo();
+            }
+            catch (ResultException e)
+            {
+                logger.Error(e.Result.ToString(), e);
+                throw;
+            }
+            catch (Exception e)
+            {
+                logger.Error(e);
+                throw;
+            }
         }
 
         private void CreateDefaultGraphicsPipelineCreateInfo()
@@ -214,7 +257,7 @@ namespace VulkanBase
                 {
                     ApplicationInfo = new ApplicationInfo()
                     {
-                        EngineVersion = 1,
+                        EngineVersion = 1,                      
                     },
 
                     EnabledLayerNames = enabledLayerNames,
@@ -382,7 +425,7 @@ namespace VulkanBase
             );
 
             device.BindImageMemory(depthTextureImage, textureImageMemory, 0);
-            
+
             ImageView depthTextureImageView = CreateImageView(depthTextureImage, DepthFormat, ImageAspectFlags.Depth);
 
             return depthTextureImageView;
