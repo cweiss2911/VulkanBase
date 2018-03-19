@@ -149,7 +149,7 @@ namespace VulkanBase
                 throw;
             }
         }
-
+        
         private void CreateDefaultGraphicsPipelineCreateInfo()
         {
             DefaultGraphicsPipelineCreateInfo = new GraphicsPipelineCreateInfo()
@@ -239,14 +239,18 @@ namespace VulkanBase
         {
             var enabledLayerNames = new string[]
             {
+#if DEBUG
                 "VK_LAYER_LUNARG_core_validation",
+#endif
             };
 
             var enabledExtensionNames = new[]
             {
                 "VK_KHR_surface",
                 "VK_KHR_win32_surface",
+#if DEBUG
                 "VK_EXT_debug_report",
+#endif
             };
 
             DebugCallbacks.Add(LogToInternalConsole);
@@ -257,7 +261,7 @@ namespace VulkanBase
                 {
                     ApplicationInfo = new ApplicationInfo()
                     {
-                        EngineVersion = 1,                      
+                        EngineVersion = 1,
                     },
 
                     EnabledLayerNames = enabledLayerNames,
@@ -265,6 +269,7 @@ namespace VulkanBase
                 }
             );
 
+#if DEBUG
 
             instance.CreateDebugReportCallbackEXT
             (
@@ -277,7 +282,8 @@ namespace VulkanBase
                     /**/
                     PfnCallback = Marshal.GetFunctionPointerForDelegate(debugReport)
                 }
-            );
+            ); 
+#endif
         }
 
 
