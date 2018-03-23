@@ -88,10 +88,16 @@ namespace VulkanBase
 
         public SampleCountFlags Samples { get; set; } = SampleCountFlags.Count1;
 
+        public bool Debug { get; set; } = false;
+
         public VContext()
         {
             InitLoggingConfig();
             logger = LogManager.GetLogger("VulkanLogger");
+
+#if DEBUG
+            Debug = true;
+#endif
         }
 
         private void InitLoggingConfig()
@@ -149,7 +155,7 @@ namespace VulkanBase
                 throw;
             }
         }
-        
+
         private void CreateDefaultGraphicsPipelineCreateInfo()
         {
             DefaultGraphicsPipelineCreateInfo = new GraphicsPipelineCreateInfo()
@@ -237,21 +243,22 @@ namespace VulkanBase
 
         private void CreateInstance()
         {
-            var enabledLayerNames = new string[]
+            List<string> enabledLayerNames = new List<string>();
+            if (Debug)
             {
-#if DEBUG
-                "VK_LAYER_LUNARG_core_validation",
-#endif
-            };
+                enabledLayerNames.Add("VK_LAYER_LUNARG_core_validation");
+            }
 
-            var enabledExtensionNames = new[]
+            List<string> enabledExtensionNames = new List<string>()
             {
                 "VK_KHR_surface",
                 "VK_KHR_win32_surface",
-#if DEBUG
-                "VK_EXT_debug_report",
-#endif
             };
+            if (Debug)
+            {
+                enabledExtensionNames.Add("VK_EXT_debug_report");
+            }
+
 
             DebugCallbacks.Add(LogToInternalConsole);
 
@@ -264,26 +271,28 @@ namespace VulkanBase
                         EngineVersion = 1,
                     },
 
-                    EnabledLayerNames = enabledLayerNames,
-                    EnabledExtensionNames = enabledExtensionNames,
+                    EnabledLayerNames = enabledLayerNames.ToArray(),
+                    EnabledExtensionNames = enabledExtensionNames.ToArray(),
                 }
             );
 
-#if DEBUG
 
-            instance.CreateDebugReportCallbackEXT
-            (
-                new DebugReportCallbackCreateInfoExt()
-                {
-                    /**/
-                    Flags = DebugReportFlagsExt.Error | DebugReportFlagsExt.Warning,
-                    /*/
-                    Flags = (DebugReportFlagsExt)31,
-                    /**/
-                    PfnCallback = Marshal.GetFunctionPointerForDelegate(debugReport)
-                }
-            ); 
-#endif
+            if (Debug)
+            {
+                instance.CreateDebugReportCallbackEXT
+                (
+                    new DebugReportCallbackCreateInfoExt()
+                    {
+                        /**/
+                        Flags = DebugReportFlagsExt.Error | DebugReportFlagsExt.Warning,
+                        /*/
+                        Flags = (DebugReportFlagsExt)31,
+                        /**/
+                        PfnCallback = Marshal.GetFunctionPointerForDelegate(debugReport)
+                    }
+                );
+            }
+
         }
 
 
